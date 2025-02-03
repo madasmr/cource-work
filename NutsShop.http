@@ -1,0 +1,6 @@
+@NutsShop_HostAddress = http://localhost:5110
+
+GET {{NutsShop_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

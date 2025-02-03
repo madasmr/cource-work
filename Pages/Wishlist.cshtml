@@ -1,0 +1,75 @@
+﻿@page
+@model NutsShop.Pages.WishlistModel
+@{
+    ViewData["Title"] = "Желаемое";
+}
+<h2>Желаемое</h2>
+
+<div id="wishlistContainer">
+    <p>Загрузка...</p>
+</div>
+
+@section Scripts {
+    <script>
+        // Функция для загрузки списка товаров "Желаемое"
+        async function loadWishlist() {
+            const token = localStorage.getItem('token');
+            const container = document.getElementById('wishlistContainer');
+            if (!token) {
+                container.innerHTML = '<p>Войдите в систему, чтобы увидеть список желаемого.</p>';
+                return;
+            }
+            try {
+                const response = await fetch('/api/wishlist', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки списка желаемого: ' + response.status);
+                }
+                const items = await response.json();
+                if (items.length === 0) {
+                    container.innerHTML = '<p>Список желаемого пуст.</p>';
+                } else {
+                    let html = '<ul>';
+                    items.forEach(item => {
+                        html += `
+                            <li class="wishlist-item">
+                                
+                                <span>[${item.productId}] ${item.name} – ${item.price} руб.</span>
+                                <button class="wishlist-remove-btn" onclick="removeWishlist(${item.productId})">Удалить</button>
+                            </li>`;
+                    });
+                    html += '</ul>';
+                    container.innerHTML = html;
+                }
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<p>Ошибка загрузки списка желаемого.</p>';
+            }
+        }
+
+        // Функция для удаления товара из "Желаемого"
+        async function removeWishlist(productId) {
+            const token = localStorage.getItem('token');
+            if (!token) { alert("Войдите в систему"); return; }
+            try {
+                const response = await fetch('/api/wishlist/remove?productId=' + productId, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || "Ошибка при удалении товара");
+                }
+                alert("Товар удалён из списка желаемого.");
+                loadWishlist(); // обновление списка
+            } catch (e) {
+                console.error(e);
+                alert("Ошибка: " + e.message);
+            }
+        }
+
+        // Загрузка данных при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadWishlist);
+    </script>
+}

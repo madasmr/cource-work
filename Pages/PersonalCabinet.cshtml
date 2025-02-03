@@ -1,0 +1,212 @@
+﻿@page
+@model NutsShop.Pages.PersonalCabinetModel
+@{
+    ViewData["Title"] = "Личный кабинет";
+}
+<h2>Личный кабинет</h2>
+
+<!-- Блок аватара -->
+<div class="avatar-block">
+    <img id="userAvatarImg" src="" alt="Avatar" class="user-avatar" />
+</div>
+
+<div class="personal-cabinet-container">
+
+    <div class="personal-info">
+        <h3>Изменить имя пользователя</h3>
+        <input type="text" id="newUsername" placeholder="Новое имя" />
+        <button onclick="changeUsername()">Сохранить</button>
+    </div>
+
+    <div class="personal-info">
+        <h3>Изменить email</h3>
+        <input type="email" id="newEmail" placeholder="Новый email" />
+        <button onclick="changeEmail()">Сохранить</button>
+    </div>
+
+    <div class="personal-info">
+        <h3>Изменить пароль</h3>
+        <input type="password" id="newPassword" placeholder="Новый пароль" />
+        <button onclick="changePassword()">Сохранить</button>
+    </div>
+
+    <div class="personal-info">
+        <h3>Изменить аватар</h3>
+        <input type="text" id="newAvatar" placeholder="Новый URL аватара" />
+        <button onclick="changeAvatar()">Сохранить</button>
+    </div>
+
+    <div id="personalResult"></div>
+
+    <!-- Блок истории заказов -->
+    <div class="order-history">
+        <h3>Мои заказы</h3>
+        <div id="orderHistoryContainer">
+            <p>Загрузка...</p>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        // При загрузке страницы подгружаем текущие данные пользователя
+        document.addEventListener('DOMContentLoaded', function () {
+            loadPersonalData();
+            loadOrderHistory();
+        });
+
+        async function loadPersonalData() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.getElementById('personalResult').innerText = "Войдите в систему для загрузки данных.";
+                return;
+            }
+            try {
+                const response = await fetch('/api/personal', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) {
+                    throw new Error('Не удалось загрузить данные пользователя');
+                }
+                const data = await response.json();
+
+                // Показываем имя, email, аватар, и т.д.
+                document.getElementById('newUsername').value = data.username || "";
+                document.getElementById('newEmail').value = data.email || "";
+                document.getElementById('newAvatar').value = data.avatarUrl || "";
+
+                // Если avatarUrl нет или пустой, ставим заглушку
+                const avatarImg = document.getElementById('userAvatarImg');
+                if (data.avatarUrl) {
+                    avatarImg.src = data.avatarUrl;
+                } else {
+                    avatarImg.src = "/images/default-avatar.jpg";
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('personalResult').innerText = 'Ошибка при загрузке данных пользователя.';
+            }
+        }
+
+        async function changeUsername() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert("Войдите в систему"); return; }
+            const newUsername = document.getElementById('newUsername').value;
+            try {
+                const response = await fetch('/api/change_username?newUsername=' + encodeURIComponent(newUsername), {
+                    method: 'PATCH',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                document.getElementById('personalResult').innerText = response.ok ? data.message : (data.error || 'Ошибка при изменении имени');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('personalResult').innerText = 'Ошибка запроса';
+            }
+        }
+
+        async function changeEmail() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert("Войдите в систему"); return; }
+            const newEmail = document.getElementById('newEmail').value;
+            try {
+                const response = await fetch('/api/change_email?newEmail=' + encodeURIComponent(newEmail), {
+                    method: 'PATCH',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                document.getElementById('personalResult').innerText = response.ok ? data.message : (data.error || 'Ошибка при изменении email');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('personalResult').innerText = 'Ошибка запроса';
+            }
+        }
+
+        async function changePassword() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert("Войдите в систему"); return; }
+            const newPassword = document.getElementById('newPassword').value;
+            try {
+                const response = await fetch('/api/change_password?newPassword=' + encodeURIComponent(newPassword), {
+                    method: 'PATCH',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                document.getElementById('personalResult').innerText = response.ok ? data.message : (data.error || 'Ошибка при изменении пароля');
+                if (response.ok && data.new_token) {
+                    localStorage.setItem('token', data.new_token);
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('personalResult').innerText = 'Ошибка запроса';
+            }
+        }
+
+        async function changeAvatar() {
+            const token = localStorage.getItem('token');
+            if (!token) { alert("Войдите в систему"); return; }
+            const newAvatar = document.getElementById('newAvatar').value;
+            try {
+                const response = await fetch('/api/change_avatar?newAvatarUrl=' + encodeURIComponent(newAvatar), {
+                    method: 'PATCH',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                document.getElementById('personalResult').innerText = response.ok ? data.message : (data.error || 'Ошибка при изменении аватара');
+            } catch (e) {
+                console.error(e);
+                document.getElementById('personalResult').innerText = 'Ошибка запроса';
+            }
+        }
+                async function loadOrderHistory() {
+            const token = localStorage.getItem('token');
+            const container = document.getElementById('orderHistoryContainer');
+
+            if (!token) {
+                container.innerHTML = '<p>Войдите в систему, чтобы увидеть историю заказов.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/orders/history', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки истории заказов: ' + response.status);
+                }
+
+                const orders = await response.json();
+                if (orders.length === 0) {
+                    container.innerHTML = '<p>Заказов нет.</p>';
+                } else {
+                    let html = '';
+                    orders.forEach(order => {
+                        // Выводим информацию о заказе
+                        html += `
+                        <div class="order-item" style="border:1px solid #ccc; padding:10px; margin-bottom:15px;">
+                            <h4>Заказ #${order.orderId}</h4>
+                            <p><strong>Дата:</strong> ${order.createdAt}</p>
+                            <p><strong>Сумма:</strong> ${order.totalPrice} руб.</p>
+                            <p><strong>Комментарий:</strong> ${order.comment || '—'}</p>
+
+                            <p>Товары:</p>
+                            <ul>`;
+                        // Перебираем товары в заказе
+                        order.items.forEach(item => {
+                            html += `<li>Товар #${item.productId}, Кол-во: ${item.quantity}, Цена ед.: ${item.priceAtPurchase} руб.</li>`;
+                        });
+                        html += `</ul>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                }
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<p>Ошибка загрузки истории заказов.</p>';
+            }
+        }
+
+
+    </script>
+}

@@ -1,0 +1,44 @@
+﻿@page
+@model NutsShop.Pages.ProductsModel
+@{
+    ViewData["Title"] = "Товары";
+}
+<h2>Товары</h2>
+<div id="productsContainer" class="products-container">
+    <!-- Здесь будут отображаться товары -->
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                let response = await fetch('/api/products');
+                if (!response.ok) throw new Error('Ошибка загрузки товаров');
+                let products = await response.json();
+                let container = document.getElementById('productsContainer');
+                if (products.length === 0) {
+                    container.innerHTML = '<p>Нет доступных товаров.</p>';
+                    return;
+                }
+                products.forEach(p => {
+                    let item = document.createElement('div');
+                    item.className = "product-item";
+                    item.innerHTML = `
+                        <img src="${p.imageUrl}" alt="${p.name}" class="product-image" />
+                        <h4 class="product-name">${p.name}</h4>
+                        <p class="product-price">Цена: ${p.price} руб.</p>
+                        <div class="product-actions">
+                            <input type="number" id="quantity-${p.id}" min="1" value="1" class="product-quantity" />
+                            <button class="btn-cart" onclick="addToCart(${p.id}, document.getElementById('quantity-${p.id}').value)">Добавить в корзину</button>
+                            <button class="btn-wishlist" onclick="addToWishlist(${p.id})">Добавить в желаемое</button>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (e) {
+                console.error(e);
+                document.getElementById('productsContainer').innerHTML = '<p>Ошибка загрузки товаров.</p>';
+            }
+        });
+    </script>
+}

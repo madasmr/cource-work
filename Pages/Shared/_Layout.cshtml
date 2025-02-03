@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Мудрый Орех</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+    <script src="~/js/site.js"></script>
+    <script src="~/js/shop.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <!-- Левая часть: название и поиск -->
+            <div class="header-left">
+                <h1 class="site-title">
+                    <a href="/">Мудрый Орех</a>
+                </h1>
+                <form id="searchForm" action="/SearchPage" method="get">
+                    <input type="text" name="query" placeholder="Поиск по товарам..." />
+                    <button type="submit">Найти</button>
+                </form>
+                <button onclick="location.href='/Products'">Все товары</button>
+                
+            </div>
+            <!-- Правая часть: пользовательское меню -->
+            <div class="header-right">
+                <!-- Здесь будет динамически сформированное меню -->
+                <nav id="userMenu">>
+                </nav>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="content">
+            @RenderBody()
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2025 Мудрый Орех</p>
+    </footer>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

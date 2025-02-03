@@ -1,0 +1,76 @@
+﻿@page
+@model NutsShop.Pages.LoginModel
+@{
+    ViewData["Title"] = "Вход";
+}
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+
+    #loginForm {
+        max-width: 300px; 
+        justify-content: center;
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 auto; 
+        padding: 0px; 
+        border: none;
+        background-color: #ffe9e0;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+        width: 100%; 
+        padding: 10px; 
+        margin: 10px 0; 
+        border: 1px solid #ccc; 
+        border-radius: 5px; 
+        font-size: 16px;
+    }
+
+    h2 {
+        margin-top: 20px;
+        text-align: center;
+    }
+</style>
+
+<h2>Вход</h2>
+<form id="loginForm">
+    <input type="text" id="username" placeholder="Имя пользователя" required />
+    <input type="password" id="password" placeholder="Пароль" required />
+    <button type="submit" class="checkout-submit-btn">Войти</button>
+</form>
+
+<div id="loginResult"></div>
+
+@section Scripts {
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const response = await fetch('/api/login?username=' + encodeURIComponent(username) +
+                                                '&password=' + encodeURIComponent(password), {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    // Сохраняем токен в localStorage
+                    localStorage.setItem('token', data.token);
+                    document.getElementById('loginResult').innerText = "Вход выполнен успешно!";
+                    // Перенаправляем на главную
+                    window.location.href = "/";
+                } else {
+                    document.getElementById('loginResult').innerText = data.error || "Ошибка входа.";
+                }
+            } catch (err) {
+                document.getElementById('loginResult').innerText = "Ошибка соединения.";
+            }
+        });
+    </script>
+}

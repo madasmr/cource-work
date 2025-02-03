@@ -1,0 +1,221 @@
+﻿@page
+@model NutsShop.Pages.CartModel
+@{
+    ViewData["Title"] = "Корзина";
+}
+
+<h2>Корзина</h2>
+
+<!-- Кнопка раскрыть/скрыть корзину -->
+<button id="toggleCart" class="cart-toggle-btn">Показать/Скрыть корзину</button>
+
+<div id="cartContainer" style="display: none;">
+    <p>Загрузка корзины...</p>
+</div>
+
+<!-- Блок для оформления заказа -->
+<div id="checkoutSection" class="checkout-section" style="display:none;">
+    <h3>Оформление заказа</h3>
+
+    <div>
+        <label>Адрес доставки:</label>
+        <input type="text" id="shippingAddress" placeholder="Адрес" />
+    </div>
+
+    <div>
+        <label>Способ оплаты:</label>
+        <select id="paymentMethod">
+            <option value="card">Банковская карта</option>
+            <option value="cash">Наличные</option>
+            <option value="online">Онлайн оплата</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Комментарий:</label>
+        <br />
+        <textarea id="orderComment" rows="3" cols="50" placeholder="Ваш комментарий..."></textarea>
+    </div>
+
+    <div style="margin-top:10px;">
+        <button onclick="submitOrder()" class="checkout-submit-btn">Оформить заказ</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+                // ======== Показать/скрыть корзину ========
+                document.getElementById('toggleCart').addEventListener('click', function() {
+                    const container = document.getElementById('cartContainer');
+                    if (container.style.display === 'none') {
+                        container.style.display = 'block';
+                        loadCart();
+                    } else {
+                        container.style.display = 'none';
+                    }
+                });
+
+                // ======== Загрузка корзины ========
+                async function loadCart() {
+                    const token = localStorage.getItem('token');
+                    const container = document.getElementById('cartContainer');
+                    if (!token) {
+                        container.innerHTML = '<p>Войдите в систему, чтобы увидеть корзину.</p>';
+                        return;
+                    }
+                    try {
+                        const response = await fetch('/api/cart', {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if (!response.ok) {
+                            throw new Error('Ошибка загрузки корзины: ' + response.status);
+                        }
+                        const items = await response.json();
+
+                        if (items.length === 0) {
+                            container.innerHTML = '<p>Ваша корзина пуста.</p>';
+                        } else {
+                            let html = '<ul class="cart-list">';
+                            items.forEach(item => {
+                                html += `
+                                    <li class="cart-item">
+                                        <span class="cart-item-text">
+                                            [${item.productId}] ${item.name} – ${item.price} руб. x
+                                            <input type="number" class="cart-item-quantity"
+                                                   value="${item.quantity}" min="1"
+                                                   onchange="updateCartQuantity(${item.productId}, this.value)">
+                                            = ${item.subtotal} руб.
+                                        </span>
+                                        <button class="cart-remove-btn" onclick="removeCartItem(${item.productId}, 1)">Удалить 1 шт.</button>
+                                    </li>`;
+                            });
+                            html += '</ul>';
+                            // Кнопка перехода к оформлению:
+                            html += `<button class="checkout-button" onclick="showCheckout()">Перейти к оформлению</button>`;
+                            container.innerHTML = html;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        container.innerHTML = '<p>Ошибка загрузки корзины.</p>';
+                    }
+                }
+
+                // ======== Обновить количество товара ========
+                async function updateCartQuantity(productId, newQty) {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert("Войдите в систему");
+                        return;
+                    }
+                    newQty = parseInt(newQty);
+                    if (isNaN(newQty) || newQty < 0) {
+                        alert("Количество должно быть >= 0");
+                        return;
+                    }
+                    try {
+                        const response = await fetch(`/api/cart/updateQuantity?productId=${productId}&newQuantity=${newQty}`, {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.error || "Ошибка при обновлении количества");
+                        }
+                        loadCart();
+                    } catch (e) {
+                        console.error(e);
+                        alert("Ошибка: " + e.message);
+                    }
+                }
+
+                // ======== Удалить товар (1 шт.) ========
+                async function removeCartItem(productId, quantity) {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert("Войдите в систему");
+                        return;
+                    }
+                    try {
+                        const response = await fetch(`/api/cart/remove?productId=${productId}&quantity=${quantity}`, {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.error || "Ошибка при удалении товара из корзины");
+                        }
+                        alert("Товар удалён из корзины.");
+                        loadCart();
+                    } catch (e) {
+                        console.error(e);
+                        alert("Ошибка: " + e.message);
+                    }
+                }
+
+                // ======== Переход к оформлению (показать блок checkoutSection) ========
+                function showCheckout() {
+                    document.getElementById('checkoutSection').style.display = 'block';
+                }
+
+                // ======== Оформить заказ (вместе с адресом, оплатой, комментарием) ========
+                async function submitOrder() {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert("Войдите в систему");
+                        return;
+                    }
+
+                    // Считываем данные из полей
+                    const addressInput = document.getElementById('shippingAddress').value;
+                    const paymentMethod = document.getElementById('paymentMethod').value;
+                    const comment = document.getElementById('orderComment').value;
+
+                    try {
+                        // 1) Сохраняем адрес доставки (если заполнено)
+                        if (addressInput) {
+                            const addrResp = await fetch(`/api/choose_address?newAddress=${encodeURIComponent(addressInput)}`, {
+                                method: 'PATCH',
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            });
+                            if (!addrResp.ok) {
+                                const data = await addrResp.json();
+                                throw new Error(data.error || "Ошибка при выборе адреса");
+                            }
+                        }
+
+                        // 2) Сохраняем способ оплаты
+                        if (paymentMethod) {
+                            const payResp = await fetch(`/api/choose_payment?paymentMethod=${encodeURIComponent(paymentMethod)}`, {
+                                method: 'PATCH',
+                                headers: { 'Authorization': 'Bearer ' + token }
+                            });
+                            if (!payResp.ok) {
+                                const data = await payResp.json();
+                                throw new Error(data.error || "Ошибка при выборе способа оплаты");
+                            }
+                        }
+
+                        // 3) Делаем заказ, передавая комментарий как query-параметр
+                        const orderResp = await fetch('/api/order?comment=' + encodeURIComponent(comment), {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        const orderData = await orderResp.json();
+                        if (!orderResp.ok) {
+                            throw new Error(orderData.error || "Ошибка при оформлении заказа");
+                        }
+
+                        // Выводим результат
+                        alert(`Заказ #${orderData.orderId} оформлен на сумму ${orderData.totalPrice} руб.
+        Комментарий: ${orderData.orderComment || '—'}`);
+
+                        // Обновить корзину
+                        loadCart();
+
+                    } catch (e) {
+                        console.error(e);
+                        alert("Ошибка: " + e.message);
+                    }
+                }
+    </script>
+}

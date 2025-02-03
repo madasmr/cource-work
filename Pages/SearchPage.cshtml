@@ -1,0 +1,77 @@
+﻿@page
+@model NutsShop.Pages.SearchPageModel
+@{
+    ViewData["Title"] = "Поиск";
+
+    // Считываем входящий GET-параметр
+    var initialQuery = Request.Query["query"];
+}
+
+<h2>Поиск товара</h2>
+
+<div class="search-form">
+    <!-- Подставляем initialQuery в value, чтобы при перезагрузке страницы пользователь видел свой запрос -->
+    <input type="text" id="searchQuery" placeholder="Введите название товара" value="@initialQuery" />
+    <button id="searchBtn">Найти</button>
+</div>
+
+<div id="searchResults" class="search-results">
+    <!-- Результаты поиска появятся здесь -->
+</div>
+
+@section Scripts {
+    <script>
+        // Вынесем общую функцию для запроса и отображения:
+        async function doSearch(query) {
+            if (!query) {
+                document.getElementById('searchResults').innerHTML = '<p>Введите поисковый запрос.</p>';
+                return;
+            }
+            try {
+                let response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error('Ошибка при запросе к /api/search');
+
+                let results = await response.json();
+                let container = document.getElementById('searchResults');
+                container.innerHTML = '';
+
+                if (results.length === 0) {
+                    container.innerHTML = '<p>Ничего не найдено.</p>';
+                    return;
+                }
+
+                results.forEach(p => {
+                    let item = document.createElement('div');
+                    item.className = "search-item";
+                    item.innerHTML = `
+                        <h4 class="search-item-name">${p.name}</h4>
+                        <p class="search-item-price">Цена: ${p.price} руб.</p>
+                        <div class="search-actions">
+                            <button onclick="addToCart(${p.id}, 1)">Добавить в корзину</button>
+                            <button onclick="addToWishlist(${p.id})">Добавить в желаемое</button>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (e) {
+                console.error(e);
+                document.getElementById('searchResults').innerHTML = '<p>Ошибка поиска.</p>';
+            }
+        }
+
+        // При нажатии на кнопку
+        document.getElementById('searchBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchQuery').value;
+            doSearch(query);
+        });
+
+        // При загрузке страницы, если есть query в адресе, сразу делаем поиск
+        window.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryParam = urlParams.get('query');
+            if (queryParam) {
+                doSearch(queryParam);
+            }
+        });
+    </script>
+}

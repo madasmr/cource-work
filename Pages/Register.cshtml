@@ -1,0 +1,95 @@
+﻿@page
+@model NutsShop.Pages.RegisterModel
+@{
+    ViewData["Title"] = "Регистрация";
+}
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+
+    #registerForm {
+        max-width: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0 auto;
+        padding: 0px;
+        border: none;
+        background-color: #ffe9e0;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        margin: 10px auto;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+
+    h2 {
+        margin-top: 20px;
+        text-align: center;
+    }
+</style>
+
+<h2>Регистрация</h2>
+
+<form id="registerForm">
+    <div>
+        <label>Имя пользователя:</label>
+        <input type="text" id="username" required />
+    </div>
+    <div>
+        <label>Email:</label>
+        <input type="email" id="email" required />
+    </div>
+    <div>
+        <label>Пароль:</label>
+        <input type="password" id="password" required />
+    </div>
+    <button type="submit" class="checkout-submit-btn">Зарегистрироваться</button>
+</form>
+
+<div id="registerResult"></div>
+
+@section Scripts {
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (!username || !email || !password) {
+                document.getElementById('registerResult').innerText = "Заполните все поля.";
+                return;
+            }
+            try {
+                const response = await fetch(`/api/register?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('registerResult').innerText = data.message;
+                    // Можно сразу сохранить токен и перенаправить пользователя
+                    if(data.token){
+                        localStorage.setItem('token', data.token);
+                        window.location.href = "/";
+                    }
+                } else {
+                    document.getElementById('registerResult').innerText = data.error || "Ошибка регистрации.";
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('registerResult').innerText = "Ошибка соединения.";
+            }
+        });
+    </script>
+}
